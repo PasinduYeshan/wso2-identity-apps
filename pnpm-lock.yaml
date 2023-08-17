@@ -1028,8 +1028,8 @@ importers:
         specifier: ^1.1.23
         version: 1.1.23(@babel/runtime-corejs3@7.22.10)(react-dom@16.14.0)(react-router-dom@5.3.4)(react@16.14.0)
       '@braintree/sanitize-url':
-        specifier: ^5.0.0
-        version: 5.0.2
+        specifier: ^6.0.1
+        version: 6.0.1
       '@types/jest':
         specifier: ^26.0.14
         version: 26.0.24
@@ -3436,9 +3436,8 @@ packages:
   /@bcoe/v8-coverage@0.2.3:
     resolution: {integrity: sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==}
 
-  /@braintree/sanitize-url@5.0.2:
-    resolution: {integrity: sha512-NBEJlHWrhQucLhZGHtSxM2loSaNUMajC7KOYJLyfcdW/6goVoff2HoYI3bz8YCDN0wKGbxtUL0gx2dvHpvnWlw==}
-    deprecated: Potential XSS vulnerability patched in v6.0.0.
+  /@braintree/sanitize-url@6.0.1:
+    resolution: {integrity: sha512-zr9Qs9KFQiEvMWdZesjcmRJlUck5NR+eKGS1uyKk+oYTWwlYrsoPEi6VmG6/TzBD1hKCGEimrhTgGS6hvn/xIQ==}
     dev: false
 
   /@cnakazawa/watch@1.0.4:
@@ -12098,6 +12097,7 @@ packages:
   /binary-extensions@2.2.0:
     resolution: {integrity: sha512-jDctJ/IVQbZoJykoeHbhXpOlNBqGNcwXJKJog42E5HDPUwQTSdjCHdihjj0DlnheQ7blbT6dHOafNAiS8ooQKA==}
     engines: {node: '>=8'}
+    requiresBuild: true
 
   /bindings@1.5.0:
     resolution: {integrity: sha512-p2q/t/mhvuOj/UeLlV6566GD/guowlr0hHxClI0W9m7MWYkL1F0hLo+0Aexs9HSPCtR1SXQ0TD3MMKrXZajbiQ==}
