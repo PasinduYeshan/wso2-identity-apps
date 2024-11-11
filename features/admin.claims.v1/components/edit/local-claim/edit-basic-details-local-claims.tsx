@@ -16,9 +16,9 @@
  * under the License.
  */
 
-import { Show } from "@wso2is/access-control";
+import { Show, useRequiredScopes } from "@wso2is/access-control";
 import { AppConstants, AppState, FeatureConfigInterface, history } from "@wso2is/admin.core.v1";
-import { attributeConfig } from "@wso2is/admin.extensions.v1";
+import { attributeConfig, userstoresConfig } from "@wso2is/admin.extensions.v1";
 import { SCIMConfigs } from "@wso2is/admin.extensions.v1/configs/scim";
 import {
     ConnectorPropertyInterface,
@@ -27,17 +27,20 @@ import {
     getConnectorDetails } from "@wso2is/admin.server-configurations.v1";
 import { getProfileSchemas } from "@wso2is/admin.users.v1/api";
 import { getUsernameConfiguration } from "@wso2is/admin.users.v1/utils/user-management-utils";
+import { getUserStoreList } from "@wso2is/admin.userstores.v1/api";
+import { PRIMARY_USERSTORE } from "@wso2is/admin.userstores.v1/constants";
+import { UserStoreListItem } from "@wso2is/admin.userstores.v1/models/user-stores";
 import { useValidationConfigData } from "@wso2is/admin.validation.v1/api";
 import { ValidationFormInterface } from "@wso2is/admin.validation.v1/models";
 import { IdentityAppsError } from "@wso2is/core/errors";
 import { IdentityAppsApiException } from "@wso2is/core/exceptions";
-import { hasRequiredScopes } from "@wso2is/core/helpers";
 import {
     AlertInterface,
     AlertLevels,
     Claim,
     ExternalClaim,
     ProfileSchemaInterface,
+    Property,
     TestableComponentInterface
 } from "@wso2is/core/models";
 import { addAlert, setProfileSchemaRequestLoadingStatus, setSCIMSchemas } from "@wso2is/core/store";
@@ -52,7 +55,7 @@ import {
     Link,
     Message
 } from "@wso2is/react-components";
-import { AxiosError } from "axios";
+import { AxiosError, AxiosResponse } from "axios";
 import isEmpty from "lodash-es/isEmpty";
 import React, {
     FunctionComponent,
@@ -67,8 +70,10 @@ import { useTranslation } from "react-i18next";
 import { useDispatch, useSelector } from "react-redux";
 import { Dispatch } from "redux";
 import { Divider, Grid, Icon, Form as SemanticForm } from "semantic-ui-react";
+import { ExcludeUserStoreConfig } from "./exclude-user-store-config";
 import { deleteAClaim, getExternalClaims, updateAClaim } from "../../../api";
 import { ClaimManagementConstants } from "../../../constants";
+import "./edit-basic-details-local-claims.scss";
 
 /**
  * Prop types for `EditBasicDetailsLocalClaims` component
@@ -91,6 +96,13 @@ const READONLY_CLAIM_CONFIGS: string[] = [
     ClaimManagementConstants.GROUPS_CLAIM_URI,
     ClaimManagementConstants.ROLES_CLAIM_URI,
     ClaimManagementConstants.APPLICATION_ROLES_CLAIM_URI
+];
+
+const USER_STORE_CONFIG_SUPPORTED_CLAIMS: string[] = [
+    ClaimManagementConstants.EMAIL_ADDRESSES_CLAIM_URI,
+    ClaimManagementConstants.VERIFIED_EMAIL_ADDRESSES_CLAIM_URI,
+    ClaimManagementConstants.MOBILE_NUMBERS_CLAIM_URI,
+    ClaimManagementConstants.VERIFIED_MOBILE_NUMBERS_CLAIM_URI
 ];
 
 /**
@@ -123,13 +135,20 @@ export const EditBasicDetailsLocalClaims: FunctionComponent<EditBasicDetailsLoca
     const displayOrderField: MutableRefObject<HTMLElement> = useRef<HTMLElement>(null);
     const descriptionField: MutableRefObject<HTMLElement> = useRef<HTMLElement>(null);
 
-    const allowedScopes: string = useSelector((state: AppState) => state?.auth?.allowedScopes);
     const featureConfig: FeatureConfigInterface = useSelector((state: AppState) => state.config.ui.features);
+    const hasAttributeUpdatePermissions: boolean = useRequiredScopes(
+        featureConfig?.attributeDialects?.scopes?.update
+    );
+    const hiddenUserStores: string[] = useSelector((state: AppState) => state.config.ui.hiddenUserStores);
+
     const [ hideSpecialClaims, setHideSpecialClaims ] = useState<boolean>(true);
     const [ usernameConfig, setUsernameConfig ] = useState<ValidationFormInterface>(undefined);
     const [ connector, setConnector ] = useState<GovernanceConnectorInterface>(undefined);
     const [ accountVerificationEnabled, setAccountVerificationEnabled ] = useState<boolean>(false);
     const [ selfRegistrationEnabled, setSelfRegistrationEnabledEnabled ] = useState<boolean>(false);
+    const [ selectedUserStores, setSelectedUserStores ] = useState<string[]>([]);
+    const [ initialSelectedUserStores, setInitialSelectedUserStores ] = useState<string[]>([]);
+    const [ userStores, setUserStores ] = useState<string[]>([]);
 
     const { t } = useTranslation();
 
@@ -184,6 +203,13 @@ export const EditBasicDetailsLocalClaims: FunctionComponent<EditBasicDetailsLoca
         else {
             setHideSpecialClaims(true);
         }
+
+        const excludeUserStores: string[] = claim?.properties?.find((property: Property) =>
+            property?.key === ClaimManagementConstants.EXCLUDED_USER_STORES_CLAIM_PROPERTY
+        )?.value?.split(",") || [];
+
+        setSelectedUserStores(excludeUserStores);
+        setInitialSelectedUserStores(excludeUserStores);
     }, [ claim, usernameConfig ]);
 
     useEffect(() => {
@@ -300,6 +326,31 @@ export const EditBasicDetailsLocalClaims: FunctionComponent<EditBasicDetailsLoca
         });
     }, [ connector ]);
 
+    useEffect(() => {
+        let userStores: string[] = [];
+
+        if (userstoresConfig?.primaryUserstoreName === PRIMARY_USERSTORE) {
+            userStores.push(PRIMARY_USERSTORE);
+        }
+
+        getUserStoreList().then((response: AxiosResponse) => {
+            if (hiddenUserStores && hiddenUserStores.length > 0) {
+                response.data.map((store: UserStoreListItem) => {
+                    if (hiddenUserStores.length > 0 && !hiddenUserStores.includes(store?.name)) {
+                        userStores.push(store?.name);
+                    }
+                });
+            } else {
+                const userStoreNames: string[] = response.data.map((store: UserStoreListItem) => store?.name);
+
+                userStores = [ ...userStores, ...userStoreNames ];
+            }
+            setUserStores(userStores);
+        }).catch(() => {
+            setUserStores(userStores);
+        });
+    }, []);
+
     const getDialectID = (): string[]  => {
         const dialectID: string[] = [];
 
@@ -318,10 +369,13 @@ export const EditBasicDetailsLocalClaims: FunctionComponent<EditBasicDetailsLoca
         if (hideSpecialClaims) {
             return true;
         } else {
-            return !hasRequiredScopes(
-                featureConfig?.attributeDialects, featureConfig?.attributeDialects?.scopes?.update, allowedScopes);
+            return !hasAttributeUpdatePermissions;
         }
-    }, [ featureConfig, allowedScopes, hideSpecialClaims ]);
+    }, [ featureConfig, hideSpecialClaims ]);
+
+    const onChangeExcludeUserStores = (userStores: string[]) => {
+        setSelectedUserStores(userStores);
+    };
 
     const deleteConfirmation = (): ReactElement => (
         <ConfirmationModal
@@ -432,6 +486,16 @@ export const EditBasicDetailsLocalClaims: FunctionComponent<EditBasicDetailsLoca
             supportedByDefault: values?.supportedByDefault !== undefined
                 ? !!values.supportedByDefault : claim?.supportedByDefault
         };
+
+        if (!isEmpty(selectedUserStores)) {
+            data.properties = [
+                ...claim.properties,
+                {
+                    key: ClaimManagementConstants.EXCLUDED_USER_STORES_CLAIM_PROPERTY,
+                    value: selectedUserStores?.join(",")
+                }
+            ];
+        }
 
         setIsSubmitting(true);
 
@@ -553,6 +617,25 @@ export const EditBasicDetailsLocalClaims: FunctionComponent<EditBasicDetailsLoca
                                 hint={ t("claims:local.forms.regExHint") }
                                 readOnly={ isReadOnly }
                             />
+                        )
+                    }
+                    {
+                        claim && !READONLY_CLAIM_CONFIGS.includes(claim?.claimURI)
+                            && USER_STORE_CONFIG_SUPPORTED_CLAIMS.includes(claim?.claimURI)
+                            && !hideSpecialClaims && mappingChecked &&
+                        (
+                            <>
+                                <ExcludeUserStoreConfig
+                                    userStoreOptions={ userStores }
+                                    selectedUserStores={  selectedUserStores }
+                                    onChangeUserStores={ onChangeExcludeUserStores }
+                                    initialSelectedUserStores={ initialSelectedUserStores }
+                                    data-componentid="exclude-user-store-config"
+                                />
+                                <Hint>
+                                    Updates to this attribute will be skipped for users in the selected user stores.
+                                </Hint>
+                            </>
                         )
                     }
                     { !READONLY_CLAIM_CONFIGS.includes(claim?.claimURI) &&  mappingChecked
