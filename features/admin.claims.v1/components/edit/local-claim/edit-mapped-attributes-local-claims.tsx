@@ -36,6 +36,7 @@ import {
     ProfileSchemaInterface,
     Property
 } from "@wso2is/core/models";
+import { isFeatureEnabled } from "@wso2is/core/helpers";
 import { addAlert, setProfileSchemaRequestLoadingStatus, setSCIMSchemas } from "@wso2is/core/store";
 import { Field, FormValue, Forms, useTrigger } from "@wso2is/forms";
 import { EmphasizedSegment, PrimaryButton } from "@wso2is/react-components";
@@ -45,7 +46,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { Dispatch } from "redux";
 import { Divider, Grid } from "semantic-ui-react";
 import { updateAClaim } from "../../../api";
-import { ClaimManagementConstants } from "../../../constants";
+import { ClaimFeatureDictionaryKeys, ClaimManagementConstants } from "../../../constants";
 
 /**
  * Prop types of `EditMappedAttributesLocalClaims` component
@@ -100,6 +101,17 @@ export const EditMappedAttributesLocalClaims: FunctionComponent<EditMappedAttrib
     const isReadOnly: boolean = !useRequiredScopes(
         featureConfig?.attributeDialects?.scopes?.update
     );
+
+    const isSelectiveClaimStoreManagementEnabledInConfig: boolean = isFeatureEnabled(
+        featureConfig?.attributeDialects,
+        ClaimManagementConstants.FEATURE_DICTIONARY.get(
+            ClaimFeatureDictionaryKeys.SelectiveClaimStoreManagement
+        )
+    );
+
+    const shouldShowExcludedUserStoreConfiguration: boolean = isSelectiveClaimStoreManagementEnabledInConfig
+        ? !!claim?.managedInUserStore
+        : ClaimManagementConstants.USER_STORE_CONFIG_SUPPORTED_CLAIMS.includes(claim.claimURI);
 
     /**
      * Fetch the updated SCIM2 schema list.
@@ -312,8 +324,7 @@ export const EditMappedAttributesLocalClaims: FunctionComponent<EditMappedAttrib
                                                             />
                                                         </Grid.Column>
                                                     </Grid.Row>
-                                                    { ClaimManagementConstants.USER_STORE_CONFIG_SUPPORTED_CLAIMS
-                                                        .includes(claim.claimURI) && (
+                                                    { shouldShowExcludedUserStoreConfiguration && (
                                                         <Grid.Row columns={ 2 } key={ index } verticalAlign="middle">
                                                             <Grid.Column width={ 6 }>
                                                                 <p>{ t("claims:local.mappedAttributes." +
