@@ -67,6 +67,7 @@ import { addAlert, setProfileSchemaRequestLoadingStatus, setSCIMSchemas } from "
 import { Field, Form } from "@wso2is/form";
 import { DropDownItemInterface } from "@wso2is/form/src";
 import { DynamicField , KeyValue } from "@wso2is/forms";
+import Alert from "@oxygen-ui/react/Alert";
 import {
     ConfirmationModal,
     CopyInputField,
@@ -1690,23 +1691,33 @@ export const EditBasicDetailsLocalClaims: FunctionComponent<EditBasicDetailsLoca
                         && !hideSpecialClaims
                         && !READONLY_CLAIM_CONFIGS.includes(claim?.claimURI)
                         && (
-                            <Field.Checkbox
-                                ariaLabel="managedInUserStore"
-                                name="managedInUserStore"
-                                required={ false }
-                                label={ t("claims:local.forms.managedInUserStore.label") }
-                                data-testid={ `${ testId }-form-managed-in-user-store-checkbox` }
-                                readOnly={ isSubOrganization() || isReadOnly }
-                                hint={
+                            <>
+                                <Field.Checkbox
+                                    ariaLabel="managedInUserStore"
+                                    name="managedInUserStore"
+                                    required={ false }
+                                    label={ t("claims:local.forms.managedInUserStore.label") }
+                                    data-testid={ `${ testId }-form-managed-in-user-store-checkbox` }
+                                    readOnly={ isSubOrganization() || isReadOnly }
+                                    hint={ t("claims:local.forms.managedInUserStore.hint") }
+                                    defaultValue={ claim?.managedInUserStore ?? false }
+                                    listen={ setManagedInUserStore }
+                                />
+                                {
                                     managedInUserStore
                                     && isIdentityClaim
                                     && hasReadOnlyUserStoresConfigured
-                                        ? t("claims:local.forms.managedInUserStore.readOnlyUserStoreHint")
-                                        : t("claims:local.forms.managedInUserStore.hint")
+                                    && (
+                                        <Alert
+                                            className="mt-2"
+                                            data-testid={ `${ testId }-readonly-userstore-alert` }
+                                            severity="warning"
+                                        >
+                                            { t("claims:local.forms.managedInUserStore.readOnlyUserStoreHint") }
+                                        </Alert>
+                                    )
                                 }
-                                defaultValue={ claim?.managedInUserStore ?? false }
-                                listen={ setManagedInUserStore }
-                            />
+                            </>
                         )
                     }
                     {
