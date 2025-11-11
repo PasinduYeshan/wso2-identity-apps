@@ -603,6 +603,9 @@ export const claims: ClaimsNS = {
             uniquenessScopeHint: "Select the scope to validate the uniqueness of the attribute value."
         },
         mappedAttributes: {
+            labels: {
+                readOnly: "Read-only"
+            },
             enableForUserStore: "Enable for this user store",
             manageInUserStore: "Manage in user store",
             hint: "Enter the attribute from the respective user stores that will be mapped to this attribute.",
