@@ -518,6 +518,10 @@ export const claims: ClaimsNS = {
                     toggle: "Toggle"
                 }
             },
+            managedInUserStore: {
+                hint: "Select when the value is controlled in the external user store and synced into the profile.",
+                label: "This attribute is managed in the user store"
+            },
             multiValued: {
                 label: "Allow multiple values for this attribute",
                 placeholder: "Select a user attribute"
